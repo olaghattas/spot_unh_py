@@ -6,45 +6,7 @@ import time
 # ros2 launch teleop_twist_joy teleop-launch.py joy_config:='xbox'
 
 import textwrap
-# # Print controls
-print(
-    textwrap.dedent("""\
-| Button Combination | Functionality            |
-|--------------------|--------------------------|
-| A                  | Endeff Up                |
-| B                  | CCW wrist                |
-| X                  | CW wrist                 |
-| Y                  | Endeff Down              |
-| RT                 | Sit                      |
-| LT                 | Stand                    |
-|                    |                          |
-| RT + :             |                          |
-| - A                | Dock                     |
-| - B                | Undock                   |
-|                    |                          |
-| LT + :             |                          |
-| - A                | Return Lease             |
-| - B                | Acquire Lease            |
-|                    |                          |
-| LB + :             |                          |
-| - A                | Power On                 |
-| - B                | Power Off                |
-|                    |                          |
-| - Left Stick       | Endeff                   |
-|  -- X              |  left/right              |
-|  -- Y              |  forward/backward        |
-|                    |                          |
-| - Right Stick      | Endeff                   |
-|  -- X              |  Rotate in yaw axis      |
-|  -- Y              |  Rotate in yaw axis      |
-|                    |                          |
-| Cross buttons      | Body                     |
-|  - Up              | Go forward               |
-|  - Down            | Go backward              |
-|  - Left            | Go left                  |
-|  - Right           | Go right                 |
-|                    |                          |
-        """))
+
 
 class JoySubscriber(Node):
     def __init__(self):
@@ -201,71 +163,46 @@ class JoySubscriber(Node):
         # print("stand = " , self.stand)
         # return buttons_pressed, axes
 
-    def xbox_to_command(self):
-        buttons_pressed = self.buttons_pressed
-        # if buttons_pressed:
-            # print(buttons_pressed)
-        if buttons_pressed == "ART":
-            print("Dock")
-            time.sleep(2.0)
-            
-        elif buttons_pressed == "BRT":
-            print("Undock")
-            time.sleep(2.0)
-            
-        elif buttons_pressed == "ALT":
-            print("Return Lease")
-            time.sleep(2.0)
-            
-        elif buttons_pressed == "BLT":
-            print("Acquire Lease")
-            time.sleep(2.0)
-        
-        elif buttons_pressed == "ALB":
-            print("Power On")
-            time.sleep(2.0)
-            
-        elif buttons_pressed == "BLB":
-            print("Power Off")
-            time.sleep(2.0)
-            
-        elif buttons_pressed == "A":
-            print("Go down")
-
-        elif buttons_pressed == "B":
-            print("CCW")
-
-        elif buttons_pressed == "X":
-            print("CW")
-            
-        elif buttons_pressed == "Y":
-            print("Go up")
-        
-        elif buttons_pressed == "LT":
-            print("Stand")
-            time.sleep(2.0)
-            
-        elif buttons_pressed == "RT":
-            print("Sit")
-            time.sleep(2.0)
-            
-        if self.body == "Left":
-             print("Left")
-        
-        if self.body == "Right":
-             print("Right")
-            
-        if self.body == "Up":
-             print("Up")
-        
-        if self.body == "Down":
-             print("Down")
-        
-        # else:
-        #     print("Please choose correct answer")
-        if any(self.end_eff):
-            print(self.end_eff)
-    
+    def print_button_combination(self):
+        # # Print controls
+        print(
+            textwrap.dedent("""\
+        | Button Combination | Functionality            |
+        |--------------------|--------------------------|
+        | A                  | Endeff Up                |
+        | B                  | CCW wrist                |
+        | X                  | CW wrist                 |
+        | Y                  | Endeff Down              |
+        | RT                 | Sit                      |
+        | LT                 | Stand                    |
+        |                    |                          |
+        | RT + :             |                          |
+        | - A                | Dock                     |
+        | - B                | Undock                   |
+        |                    |                          |
+        | LT + :             |                          |
+        | - A                | Return Lease             |
+        | - B                | Acquire Lease            |
+        |                    |                          |
+        | LB + :             |                          |
+        | - A                | Power On                 |
+        | - B                | Power Off                |
+        |                    |                          |
+        | - Left Stick       | Endeff                   |
+        |  -- X              |  left/right              |
+        |  -- Y              |  forward/backward        |
+        |                    |                          |
+        | - Right Stick      | Endeff                   |
+        |  -- X              |  Rotate in yaw axis      |
+        |  -- Y              |  Rotate in yaw axis      |
+        |                    |                          |
+        | Cross buttons      | Body                     |
+        |  - Up              | Go forward               |
+        |  - Down            | Go backward              |
+        |  - Left            | Go left                  |
+        |  - Right           | Go right                 |
+        |                    |                          |
+                """))
 def main(args=None):
     # Initialize rclpy
     rclpy.init(args=args)

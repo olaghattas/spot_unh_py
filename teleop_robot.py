@@ -26,70 +26,7 @@ from sensor_msgs.msg import Joy
 from bosdyn.client.async_tasks import AsyncPeriodicQuery
 from bosdyn.client.lease import Error as LeaseBaseError
 LOGGER = logging.getLogger() ## shufe keef t2emiya
-# import textwrap
-# # Print controls
-# print(
-#     textwrap.dedent("""\
-# | Button Combination | Functionality            |
-# |--------------------|--------------------------|
-# | A                  | Walk                     |
-# | B                  | Stand                    |
-# | X                  | Sit                      |
-# | Y                  | Stairs                   |
-# | LB + :             |                          |
-# | - D-pad up/down    | Walk height              |
-# | - D-pad left       | Battery-Change Pose      |
-# | - D-pad right      | Self right               |
-# | - Y                | Jog                      |
-# | - A                | Amble                    |
-# | - B                | Crawl                    |
-# | - X                | Hop                      |
-# |                    |                          |
-# | If Stand Mode      |                          |
-# | - Left Stick       |                          |
-# | -- X               | Rotate body in roll axis |
-# | -- Y               | Control height           |
-# | - Right Stick      |                          |
-# | -- X               | Turn body in yaw axis    |
-# | -- Y               | Turn body in pitch axis  |
-# | Else               |                          |
-# | - Left Stick       | Move                     |
-# | - Right Stick      | Turn                     |
-# |                    |                          |
-# | LB + RB + B        | E-Stop                   |
-# | Start              | Motor power & Control    |
-# | Back               | Exit                     |
-#         """))
-
-
-class JoySubscriber(Node):
-    def __init__(self):
-        super().__init__('joy_subscriber')
-        # Create a subscription to the /joy topic
-        self.subscription = self.create_subscription(
-            Joy,
-            '/joy',
-            self.joy_callback,
-            10  # QoS depth
-        )
-        self.get_logger().info("Joy Subscriber Node has been started.")
-        self.stand = False
-        self.sit = False
-
-    def joy_callback(self, msg):
-        # Callback triggered on receiving a message
-        msg_ = msg
-        # self.get_logger().info(f"Axes: {msg.axes}, Buttons: {msg.buttons}")
-        # if LT pressed stand
-        if msg_.axes[2] < -0.5:
-            self.stand = True
-            self.sit = False
-
-        if msg_.axes[5] < -0.5:
-            self.stand = False
-            self.sit = True
-
-        print("stand = " , self.stand)
+from xbox import JoySubscriber
 
 
 class AsyncRobotState(AsyncPeriodicQuery):
@@ -120,7 +57,77 @@ class TeleopInterface:
         self._estop_keepalive = None
 
         self.node = JoySubscriber()
+        
+        
+    def xbox_to_command(self):
+        buttons_pressed = self.node.buttons_pressed
+        # if buttons_pressed:
+            # print(buttons_pressed)
+        if buttons_pressed == "ART":
+            print("Dock")
+            time.sleep(2.0)
+            
+        elif buttons_pressed == "BRT":
+            print("Undock")
+            time.sleep(2.0)
+            
+        elif buttons_pressed == "ALT":
+            print("Return Lease")
+            time.sleep(2.0)
+            
+        elif buttons_pressed == "BLT":
+            print("Acquire Lease")
+            time.sleep(2.0)
+        
+        elif buttons_pressed == "ALB":
+            print("Power On")
+            time.sleep(2.0)
+            
+        elif buttons_pressed == "BLB":
+            print("Power Off")
+            self._safe_power_off()
+            time.sleep(2.0)
+            
+        elif buttons_pressed == "A":
+            print("Go down")
 
+        elif buttons_pressed == "B":
+            print("CCW")
+
+        elif buttons_pressed == "X":
+            print("CW")
+            
+        elif buttons_pressed == "Y":
+            print("Go up")
+        
+        elif buttons_pressed == "LT":
+            self._stand()
+            print("Stand")
+            time.sleep(2.0)
+            
+        elif buttons_pressed == "RT":
+            self._sit()
+            print("Sit")
+            time.sleep(2.0)
+            
+        if self.body == "Left":
+             print("Left")
+        
+        if self.body == "Right":
+             print("Right")
+            
+        if self.body == "Up":
+             print("Up")
+        
+        if self.body == "Down":
+             print("Down")
+        
+        # else:
+        #     print("Please choose correct answer")
+        if any(self.end_eff):
+            print(self.end_eff)
+    
+    
     def start(self):
         """Begin communication with the robot."""
         # Construct our lease keep-alive object, which begins RetainLease calls in a thread.
@@ -183,12 +190,8 @@ class TeleopInterface:
             while rclpy.ok():
                 print(self.node.stand)
                 rclpy.spin_once(self.node, timeout_sec=0.1)  # Non-blocking spin
-                if self.node.stand:
-                    self._stand()
-                    self.node.stand = False  # Reset to avoid repeated calls
-                elif self.node.sit:
-                    self._sit()
-                    self.node.sit = False  # Reset to avoid repeated calls
+                self.xbox_to_command()
+                
         except KeyboardInterrupt:
             pass
         finally:
