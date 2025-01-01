@@ -1,5 +1,4 @@
-"""Teleop SPOT with xbox using Boston Dynamics API"""
-# ros2 launch teleop_twist_joy teleop-launch.py joy_config:='xbox'
+
 
 import argparse
 import os
