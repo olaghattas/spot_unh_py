@@ -388,6 +388,53 @@ class TeleopInterface:
             self._safe_power_off()
             time.sleep(2.0)
 
+
+    # def _move(self, left_x, left_y, right_x):
+    #     """Commands the robot with a velocity command based on left/right stick values.
+
+    #     Args:
+    #         left_x: X value of left stick.
+    #         left_y: Y value of left stick.
+    #         right_x: X value of right stick.
+    #     """
+
+    #     # Stick left_x controls robot v_y
+    #     v_y = -left_x * VELOCITY_BASE_SPEED
+
+    #     # Stick left_y controls robot v_x
+    #     v_x = left_y * VELOCITY_BASE_SPEED
+
+    #     # Stick right_x controls robot v_rot
+    #     v_rot = -right_x * VELOCITY_BASE_ANGULAR
+
+    #     # Recreate mobility_params with the latest information
+    #     self.mobility_params = RobotCommandBuilder.mobility_params(
+    #         body_height=self.body_height, locomotion_hint=self.mobility_params.locomotion_hint,
+    #         stair_hint=self.mobility_params.stair_hint)
+
+    #     cmd = RobotCommandBuilder.synchro_velocity_command(v_x=v_x, v_y=v_y, v_rot=v_rot,
+    #                                                        params=self.mobility_params)
+    #     self._issue_robot_command(cmd, endtime=time.time() + VELOCITY_CMD_DURATION)
+    # def _change_height(self, direction):
+    #     """Changes robot body height.
+
+    #     Args:
+    #         direction: 1 to increase height, -1 to decrease height.
+    #     """
+
+    #     self.body_height = self.body_height + direction * HEIGHT_CHANGE
+    #     self.body_height = min(HEIGHT_MAX, self.body_height)
+    #     self.body_height = max(-HEIGHT_MAX, self.body_height)
+    #     self._orientation_cmd_helper(height=self.body_height)
+    #   def _reset_height(self):
+    #     """Resets robot body height to normal stand height.
+    #     """
+
+    #     self.body_height = 0.0
+    #     self._orientation_cmd_helper(height=self.body_height)
+    #     self.stand_height_change = False
+
+
 def main():
     # Initialize rclpy
     rclpy.init()

@@ -42,6 +42,9 @@
 
 TO DO:
 1) get robot state
-2) control end effector
+2) extract camera images
 3) rotate body RT + left rigth cross butons
-4) merge keys so dock undock take RT/A and sit stand tak RT/B and use LT RT to rotate body lb and rb to control gripper
+4) merge keys so dock undock take RT/A and sit stand tak RT/B and use LT RT to rotate body
+5) change height of robot
+6) move hand with body
+7) setup dataset collection
