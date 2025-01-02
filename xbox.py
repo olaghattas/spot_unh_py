@@ -23,8 +23,12 @@ class JoySubscriber(Node):
         self.sit = False
         self.buttons_pressed = ""
         self.body = ""
-        # x,y,z row,pitch,yaw should be 
-        # but we are using button to control z and wrist
+
+        # mapping to xbox
+        #[Right Stick Y, Right Stick X, Left Stick Y, Left Stick X]
+        # mapping end eff position
+        #[Transl forward/back,Transl left/right, Rotation forward/back,Rotation left/right]
+
         self.end_eff = [0,0,0,0]
         
         self.wait_RT_started = False
@@ -130,35 +134,36 @@ class JoySubscriber(Node):
             self.wait_LT_started = False
             self.wait_LT_done = False
             self.wait_RB_started = False
-            self.wait_LB_started = False
             self.wait_RB_done = False
+            self.wait_LB_started = False
             self.wait_LB_done = False
 
         if msg_.axes[6] == 1:
             self.body = "Left"
+            # print(self.body, " = Left")
         elif msg_.axes[6] == -1:
             self.body = "Right"
-            
+            # print(self.body, " = Right")
         if msg_.axes[7] == 1:
             self.body = "Up"
+            # print(self.body, " = Up")
         elif msg_.axes[7] == -1:
             self.body = "Down"
             
 
-        if msg_.axes[0]:
-            ## left right
-            self.end_eff[1] = msg_.axes[0]
-        if msg_.axes[1]:
-            ## forward backward
-            self.end_eff[0] = msg_.axes[1]
-        
         if msg_.axes[3]:
             ## left right
-            ## needs checking 
-            self.end_eff[2] = msg_.axes[3]
+            self.end_eff[1] = msg_.axes[3]
         if msg_.axes[4]:
             ## forward backward
-            self.end_eff[3] = msg_.axes[4]
+            self.end_eff[0] = msg_.axes[4]
+        
+        if msg_.axes[0]:
+            ## left right 
+            self.end_eff[3] = msg_.axes[0]
+        if msg_.axes[1]:
+            ## forward backward
+            self.end_eff[2] = msg_.axes[1]
  
         # print("stand = " , self.stand)
         # return buttons_pressed, axes
@@ -170,8 +175,8 @@ class JoySubscriber(Node):
         | Button Combination | Functionality            |
         |--------------------|--------------------------|
         | A                  | Endeff Up                |
-        | B                  | CCW wrist                |
-        | X                  | CW wrist                 |
+        | B                  | CW wrist                 |
+        | X                  | CCW wrist                |
         | Y                  | Endeff Down              |
         | RT                 | Sit                      |
         | LT                 | Stand                    |
@@ -179,6 +184,10 @@ class JoySubscriber(Node):
         | RT + :             |                          |
         | - A                | Dock                     |
         | - B                | Undock                   |
+        |                    |                          |
+        | RB + :             |                          |
+        | - A                | Stow                     |
+        | - B                | Unstow                   |
         |                    |                          |
         | LT + :             |                          |
         | - A                | Return Lease             |
@@ -193,10 +202,10 @@ class JoySubscriber(Node):
         |  -- Y              |  forward/backward        |
         |                    |                          |
         | - Right Stick      | Endeff                   |
-        |  -- X              |  Rotate in yaw axis      |
-        |  -- Y              |  Rotate in yaw axis      |
+        |  -- X              |  Rotate in z axis      |
+        |  -- Y              |  Rotate in y axis      |
         |                    |                          |
-        | Cross buttons      | Body                     |
+        | - Cross buttons    | Body                     |
         |  - Up              | Go forward               |
         |  - Down            | Go backward              |
         |  - Left            | Go left                  |
