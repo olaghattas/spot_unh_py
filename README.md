@@ -26,24 +26,28 @@
 | - B                | Power Off                |
 |                    |                          |
 | - Left Stick       | Endeff                   |
-|  -- X              |  left/right              |
-|  -- Y              |  forward/backward        |
+|  - X               |  left/right              |
+|  - Y               |  forward/backward        |
 |                    |                          |
 | - Right Stick      | Endeff                   |
-|  -- X              |  Rotate in yaw axis      |
-|  -- Y              |  Rotate in yaw axis      |
+|  - X               |  Rotate in yaw axis      |
+|  - Y               |  Rotate in yaw axis      |
 |                    |                          |
 | - Cross buttons    | Body                     |
 |  - Up              | Go forward               |
 |  - Down            | Go backward              |
-|  - Left            | Go left                  |
-|  - Right           | Go right                 |
+|  - Left            | Strafe left              |
+|  - Right           | Strafe right             |
 |                    |                          |
+|  -- + RT           |                          |
+|   - Left           | Rotate left              |
+|   - Right          | Rotate right             |
+|                    |                          |
+
 
 TO DO:
 1) get robot state
 2) extract camera images
-3) rotate body RT + left rigth cross butons
 4) merge keys so dock undock take RT/A and sit stand tak RT/B and use LT RT to rotate body
 5) change height of robot
 6) move hand with body

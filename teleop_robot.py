@@ -284,7 +284,7 @@ class TeleopInterface:
     
     ## For ARM
     def _move_inout(self,x):
-        self._arm_cylindrical_velocity_cmd_helper('move_out', v_r=x*VELOCITY_HAND_NORMALIZED)
+        self._arm_cylindrical_velocity_cmd_helper('move_inout', v_r=x*VELOCITY_HAND_NORMALIZED)
 
     def _rotate(self,x):
         self._arm_cylindrical_velocity_cmd_helper('rotate', v_theta=x*VELOCITY_HAND_NORMALIZED)

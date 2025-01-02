@@ -172,46 +172,50 @@ class JoySubscriber(Node):
         # # Print controls
         print(
             textwrap.dedent("""\
-        | Button Combination | Functionality            |
-        |--------------------|--------------------------|
-        | A                  | Endeff Up                |
-        | B                  | CW wrist                 |
-        | X                  | CCW wrist                |
-        | Y                  | Endeff Down              |
-        | RT                 | Sit                      |
-        | LT                 | Stand                    |
-        |                    |                          |
-        | RT + :             |                          |
-        | - A                | Dock                     |
-        | - B                | Undock                   |
-        |                    |                          |
-        | RB + :             |                          |
-        | - A                | Stow                     |
-        | - B                | Unstow                   |
-        |                    |                          |
-        | LT + :             |                          |
-        | - A                | Return Lease             |
-        | - B                | Acquire Lease            |
-        |                    |                          |
-        | LB + :             |                          |
-        | - A                | Power On                 |
-        | - B                | Power Off                |
-        |                    |                          |
-        | - Left Stick       | Endeff                   |
-        |  -- X              |  left/right              |
-        |  -- Y              |  forward/backward        |
-        |                    |                          |
-        | - Right Stick      | Endeff                   |
-        |  -- X              |  Rotate in z axis      |
-        |  -- Y              |  Rotate in y axis      |
-        |                    |                          |
-        | - Cross buttons    | Body                     |
-        |  - Up              | Go forward               |
-        |  - Down            | Go backward              |
-        |  - Left            | Go left                  |
-        |  - Right           | Go right                 |
-        |                    |                          |
-                """))
+            | Button Combination | Functionality            |
+            |--------------------|--------------------------|
+            | A                  | Endeff Up                |
+            | B                  | CW wrist                 |
+            | X                  | CCW wrist                |
+            | Y                  | Endeff Down              |
+            | RT                 | Sit                      |
+            | LT                 | Stand                    |
+            |                    |                          |
+            | RT + :             |                          |
+            | - A                | Dock                     |
+            | - B                | Undock                   |
+            |                    |                          |
+            | RB + :             |                          |
+            | - A                | Stow                     |
+            | - B                | Unstow                   |
+            |                    |                          |
+            | LT + :             |                          |
+            | - A                | Return Lease             |
+            | - B                | Acquire Lease            |
+            |                    |                          |
+            | LB + :             |                          |
+            | - A                | Power On                 |
+            | - B                | Power Off                |
+            |                    |                          |
+            | - Left Stick       | Endeff                   |
+            |  - X               |  left/right              |
+            |  - Y               |  forward/backward        |
+            |                    |                          |
+            | - Right Stick      | Endeff                   |
+            |  - X               |  Rotate in yaw axis      |
+            |  - Y               |  Rotate in yaw axis      |
+            |                    |                          |
+            | - Cross buttons    | Body                     |
+            |  - Up              | Go forward               |
+            |  - Down            | Go backward              |
+            |  - Left            | Strafe left              |
+            |  - Right           | Strafe right             |
+            |                    |                          |
+            |  -- + RT           |                          |
+            |   - Left           | Rotate left              |
+            |   - Right          | Rotate right             |
+            |                    |                          |
+            """))
 def main(args=None):
     # Initialize rclpy
     rclpy.init(args=args)
