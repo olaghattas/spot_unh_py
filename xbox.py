@@ -184,16 +184,16 @@ class JoySubscriber(Node):
             | LB                 | Close gripper            |
             |                    |                          |
             | RT + :             |                          |
-            | - A                | Dock                     |
-            | - B                | Undock                   |
+            | - A                | Dock/Undock              |
+            | - B                |                          |
             |                    |                          |
             | RB + :             |                          |
             | - A                | Stow                     |
             | - B                | Unstow                   |
             |                    |                          |
             | LT + :             |                          |
-            | - A                | Return Lease             |
-            | - B                | Acquire Lease            |
+            | - A                | Return/Acquire Lease     |
+            | - B                |                          |
             |                    |                          |
             | LB + :             |                          |
             | - A                | Power On                 |
@@ -213,8 +213,8 @@ class JoySubscriber(Node):
             |  - Left            | Strafe left              |
             |  - Right           | Strafe right             |
             |  -- + LTRT         |                          |
-            |   - Up             | Height Up                |
-            |   - Down           | Height Down              |
+            |   - Up             | Raise body               |
+            |   - Down           | Lower body               |
             |   - Left           | Rotate left              |
             |   - Right          | Rotate right             |
             |                    |                          |

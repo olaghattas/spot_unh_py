@@ -1,5 +1,3 @@
-
-
 import argparse
 import os
 import sys
@@ -10,14 +8,9 @@ import bosdyn.client
 import bosdyn.client.lease
 import bosdyn.client.util
 import bosdyn.geometry
-from bosdyn.api import trajectory_pb2
 from bosdyn.api.spot import robot_command_pb2 as spot_command_pb2
-from bosdyn.client import math_helpers
-from bosdyn.client.frame_helpers import GRAV_ALIGNED_BODY_FRAME_NAME, ODOM_FRAME_NAME, get_a_tform_b
-from bosdyn.client.robot_command import RobotCommandBuilder, RobotCommandClient, blocking_stand
+from bosdyn.client.robot_command import RobotCommandBuilder, RobotCommandClient
 from bosdyn.client.robot_state import RobotStateClient
-from bosdyn.util import seconds_to_duration
-from bosdyn.client.estop import EstopClient
 from bosdyn.client.power import PowerClient
 from bosdyn.client.docking import DockingClient, blocking_dock_robot, blocking_undock, get_dock_id
 
@@ -29,17 +22,18 @@ from bosdyn.client.lease import Error as LeaseBaseError
 LOGGER = logging.getLogger() ## shufe keef t2emiya
 from xbox import JoySubscriber
 
-
+#### BRT and BLT are empty
 COMMAND_INPUT_RATE = 0.1
+VELOCITY_CMD_DURATION = VELOCITY_CMD_DURATION_ARM = 0.2  # seconds 0.6 default
+
 
 VELOCITY_BASE_SPEED = 0.5  # m/s
-VELOCITY_CMD_DURATION = 0.2  # seconds 0.6 default
 VELOCITY_BASE_ANGULAR = 0.8  # rad/sec
-
-VELOCITY_CMD_DURATION_ARM = 0.2  # seconds
 VELOCITY_HAND_NORMALIZED = 0.5  # normalized hand velocity [0,1]
 VELOCITY_ANGULAR_HAND = 1.0  # rad/sec
 
+HEIGHT_MAX = 0.3  # m
+HEIGHT_CHANGE = 0.1  # m per command
 
 class AsyncRobotState(AsyncPeriodicQuery):
     """Grab robot state."""
@@ -53,6 +47,9 @@ class AsyncRobotState(AsyncPeriodicQuery):
 
 class TeleopInterface:
     def __init__(self,robot ):
+        self.mobility_params = None
+        self.body_height = 0.0
+        
         self.robot = robot
         self.lease_client = robot.ensure_client(bosdyn.client.lease.LeaseClient.default_service_name)
         self.robot_state_client = robot.ensure_client(RobotStateClient.default_service_name)
@@ -72,30 +69,48 @@ class TeleopInterface:
 
         self.node = JoySubscriber()
         self.dock_id = 520
+        # v_x_, v_y_, v_rot_, v_r_, v_theta_, v_z_, v_rx_, v_ry_, v_rz_
+        self.action = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+        self.gripper = 0 ## initially gripper closed
         
+        ## added to track when we unstow becasue it easier to move with hand unstowed
+        self.unstow = 0 # 1 when triggered
+         
     def xbox_to_command(self):
         buttons_pressed = self.node.buttons_pressed
         body = self.node.body
         end_eff = self.node.end_eff
         
+        self.unstow = 0
+        v_x_ = 0.0
+        v_y_ = 0.0
+        v_rot_ = 0.0
+
+        v_r_ = 0.0
+        v_theta_ = 0.0
+        v_z_ = 0.0
+        
+        v_rx_ = 0.0
+        v_ry_ = 0.0
+        v_rz_ = 0.0
         
         if buttons_pressed == "ART":
             print("Start Dock")
-            self._dock()
+            self._dock_undock()
             print("End Dock")
-            time.sleep(2.0)
-            
-        elif buttons_pressed == "BRT":
-            print("Undock")
-            self._undock()
-            time.sleep(2.0)
+            time.sleep(2.0)  
             
         elif buttons_pressed == "ALT":
-            print("Return Lease")
+            print("Return/Acquire Lease")
+            self._toggle_lease()
+            time.sleep(2.0)
+        
+        elif buttons_pressed == "BRT":
+            print("NOTHING")
             time.sleep(2.0)
             
         elif buttons_pressed == "BLT":
-            print("Acquire Lease")
+            print(" Nothing")
             time.sleep(2.0)
             
         elif buttons_pressed == "ARB":
@@ -109,6 +124,7 @@ class TeleopInterface:
         
         elif buttons_pressed == "ALB":
             print("Power On")
+            self.robot.power_on(timeout_sec=20)
             time.sleep(2.0)
             
         elif buttons_pressed == "BLB":
@@ -117,19 +133,19 @@ class TeleopInterface:
             time.sleep(2.0)
             
         elif buttons_pressed == "A":
-            self._move_updown(-0.5)
+            v_z_ = -0.5 * VELOCITY_HAND_NORMALIZED
             print("Go down")
 
         elif buttons_pressed == "B":
-            self._rotate_rx(0.5)
+            v_rx_ = 0.5 * VELOCITY_HAND_NORMALIZED
             print("CW")
 
         elif buttons_pressed == "X":
-            self._rotate_rx(-0.5)
+            v_rx_ = -0.5 * VELOCITY_HAND_NORMALIZED
             print("CCW")
             
         elif buttons_pressed == "Y":
-            self._move_updown(0.5)
+            v_z_ = 0.5 * VELOCITY_HAND_NORMALIZED
             print("Go up")
         
         elif buttons_pressed == "LT":
@@ -144,49 +160,80 @@ class TeleopInterface:
             
         elif buttons_pressed == "RB":
             self._toggle_gripper_open()
+            self.gripper = 1
             print("open gripper")
 
         elif buttons_pressed == "LB":
             self._toggle_gripper_closed()
+            self.gripper = 0
             print("close gripper")
         
         if body == "Left":
-            self._strafe_left()
-            print("Left")
-        
-        if body == "Right":
-            self._strafe_right()
-            print("Right")
+            if buttons_pressed == "LTRT":
+                v_rot_ = VELOCITY_BASE_ANGULAR
+                print("RTLeft")
+            else:    
+                v_y_ = VELOCITY_BASE_SPEED
+                print("Left")
             
-        if body == "Up":
-            self._move_forward()
+        if body == "Right":
+            if buttons_pressed == "LTRT":
+                v_rot_ = -VELOCITY_BASE_ANGULAR
+                print("RT Right")
+            else:    
+                v_y_ = -VELOCITY_BASE_SPEED
+                print("Right")
+            
+        if body == "Up": ## forward
+            if buttons_pressed == "LTRT":
+                # move body up
+                self._change_height(1)
+            else: 
+                v_x_ = VELOCITY_BASE_SPEED
             print("Up")
+
         
-        if body == "Down":
-            self._move_backward()
+        if body == "Down": ## backward
+            if buttons_pressed == "LTRT":
+                # move body up
+                self._change_height(-1)
+            else:
+                v_x_ = -VELOCITY_BASE_SPEED
             print("Down")
+            
+        body_ = [v_x_ , v_y_, v_rot_]
         
-        # else:
-        #     print("Please choose correct answer")
-        if any(end_eff):
-            # print(end_eff)
+        if any(body_):
+            self._velocity_cmd_helper('move body', v_x=v_x_ , v_y=v_y_, v_rot=v_rot_)
+        
+        end_eff_2 = [v_z_, v_rx_]
+        
+        ## end_eff
+            # mapping to xbox
+            #[Right Stick Y, Right Stick X, Left Stick Y, Left Stick X]
+            # mapping end eff position
+            #[Transl forward/back,Transl left/right, Rotation forward/back,Rotation left/right]
+
+        if any(end_eff) or any(end_eff_2):
             if end_eff[0]:
-                self._move_inout(end_eff[0])
+                v_r_ = end_eff[0] * VELOCITY_HAND_NORMALIZED
    
             if end_eff[1]:
-                self._rotate(end_eff[1])
+                v_theta_ = end_eff[1] * VELOCITY_HAND_NORMALIZED
                 
             if end_eff[2]:
-                self._rotate_ry(end_eff[2])
-                
+                v_ry_ = end_eff[2] * VELOCITY_ANGULAR_HAND
                 
             if end_eff[3]:
-                self._rotate_rz(-end_eff[3])
+                v_rz_ = -end_eff[3] * VELOCITY_ANGULAR_HAND
                 
-                
-            
+            self._arm_cylindrical_velocity_cmd_helper('EndEff Translation', v_r = v_r_, v_theta = v_theta_, v_z = v_z_)    
+            self._arm_angular_velocity_cmd_helper('EndEff Rotation',  v_rx=v_rx_, v_ry=v_ry_, v_rz=v_rz_)
 
-    
+        # 
+        self.action = [v_x_, v_y_, v_rot_, v_r_, v_theta_, v_z_, v_rx_, v_ry_, v_rz_]
+        # print("xbox_to_command: ", self.action)
+        
     def start(self):
         """Begin communication with the robot."""
         # Construct our lease keep-alive object, which begins RetainLease calls in a thread.
@@ -199,6 +246,10 @@ class TeleopInterface:
         self.robot.power_on(timeout_sec=20)
         assert self.robot.is_powered_on(), 'Robot power on failed.'
         self.robot.logger.info('Robot powered on.')
+        
+        #walk
+        self.mobility_params = spot_command_pb2.MobilityParams(
+            locomotion_hint= spot_command_pb2.HINT_SPEED_SELECT_TROT,stair_hint=0)
         # if self._estop_endpoint is not None:
         #     self._estop_endpoint.force_simple_setup(
         #     )  # Set this endpoint as the robot's sole estop.
@@ -245,63 +296,43 @@ class TeleopInterface:
         bosdyn.client.robot_command.blocking_stand(self._robot_command_client)
         blocking_dock_robot(self.robot, self.dock_id)
 
-    def _undock(self):
+    def _dock_undock(self):
         dock_id = get_dock_id(self.robot)
         if dock_id is None:
-            print('Robot does not seem to be docked; trying anyway')
+            print('Robot does not seem to be docked;')
+            self._dock()
         else:
             print(f'Docked at {dock_id}')
-        blocking_undock(self.robot)
+            blocking_undock(self.robot)
         
     def power_off(self):
         self.robot.power_off(cut_immediately=False, timeout_sec=20)
         assert not self.robot.is_powered_on(), 'Robot power off failed.'
         self.robot.logger.info('Robot safely powered off.')
 
-    ## FOR BODY
-    def _move_forward(self):
-        self._velocity_cmd_helper('move_forward', v_x=VELOCITY_BASE_SPEED)
-
-    def _move_backward(self):
-        self._velocity_cmd_helper('move_backward', v_x=-VELOCITY_BASE_SPEED)
-
-    def _strafe_left(self):
-        self._velocity_cmd_helper('strafe_left', v_y=VELOCITY_BASE_SPEED)
-
-    def _strafe_right(self):
-        self._velocity_cmd_helper('strafe_right', v_y=-VELOCITY_BASE_SPEED)
-
-    def _turn_left(self):
-        self._velocity_cmd_helper('turn_left', v_rot=VELOCITY_BASE_ANGULAR)
-
-    def _turn_right(self):
-        self._velocity_cmd_helper('turn_right', v_rot=-VELOCITY_BASE_ANGULAR)
-        
+    ## FOR BODY  
     def _velocity_cmd_helper(self, desc='', v_x=0.0, v_y=0.0, v_rot=0.0):
+        self.mobility_params = RobotCommandBuilder.mobility_params(
+            body_height=self.body_height, locomotion_hint=self.mobility_params.locomotion_hint,
+            stair_hint=self.mobility_params.stair_hint)
+        
         self._start_robot_command(
-            desc, RobotCommandBuilder.synchro_velocity_command(v_x=v_x, v_y=v_y, v_rot=v_rot),
+            desc, RobotCommandBuilder.synchro_velocity_command(v_x=v_x, v_y=v_y, v_rot=v_rot, params=self.mobility_params),
             end_time_secs=time.time() + VELOCITY_CMD_DURATION)
     
+    def _change_height(self, direction):
+        """Changes robot body height.
+
+        Args:
+            direction: 1 to increase height, -1 to decrease height.
+        """
+
+        self.body_height = self.body_height + direction * HEIGHT_CHANGE
+        self.body_height = min(HEIGHT_MAX, self.body_height)
+        self.body_height = max(-HEIGHT_MAX, self.body_height)
+        self._velocity_cmd_helper()
+        
     ## For ARM
-    def _move_inout(self,x):
-        self._arm_cylindrical_velocity_cmd_helper('move_inout', v_r=x*VELOCITY_HAND_NORMALIZED)
-
-    def _rotate(self,x):
-        self._arm_cylindrical_velocity_cmd_helper('rotate', v_theta=x*VELOCITY_HAND_NORMALIZED)
-
-    def _move_updown(self,x):
-        self._arm_cylindrical_velocity_cmd_helper('move_up/down', v_z=x*VELOCITY_HAND_NORMALIZED)
-
-    def _rotate_rx(self,x):
-        self._arm_angular_velocity_cmd_helper('rotate_rx', v_rx=x*VELOCITY_ANGULAR_HAND)
-
-    def _rotate_ry(self,x):
-        self._arm_angular_velocity_cmd_helper('rotate_ry', v_ry=x*VELOCITY_ANGULAR_HAND)
-
-    def _rotate_rz(self,x):
-        self._arm_angular_velocity_cmd_helper('rotate_rz', v_rz=x*VELOCITY_ANGULAR_HAND)
-
-
     def _arm_cylindrical_velocity_cmd_helper(self, desc='', v_r=0.0, v_theta=0.0, v_z=0.0):
         """ Helper function to build an arm velocity command from unitless cylindrical coordinates.
 
@@ -360,6 +391,7 @@ class TeleopInterface:
         self._start_robot_command(desc, robot_command,
                                   end_time_secs=time.time() + VELOCITY_CMD_DURATION)
     
+    
     def _toggle_gripper_open(self):
         self._start_robot_command('open_gripper', RobotCommandBuilder.claw_gripper_open_command())
 
@@ -371,7 +403,17 @@ class TeleopInterface:
 
     def _unstow(self):
         self._start_robot_command('stow', RobotCommandBuilder.arm_ready_command())
-        
+    
+    def _toggle_lease(self):
+        """toggle lease acquisition. Initial state is acquired"""
+        if self._lease_client is not None:
+            if self._lease_keepalive is None:
+                self._lease_keepalive = bosdyn.client.lease.LeaseKeepAlive(self._lease_client, must_acquire=True,
+                                                       return_at_exit=True)
+            else:
+                self._lease_keepalive.shutdown()
+                self._lease_keepalive = None  
+                  
     def teleop_spot(self):
         print("TELEOP")
         try:
@@ -379,6 +421,16 @@ class TeleopInterface:
             while rclpy.ok():
                 rclpy.spin_once(self.node, timeout_sec=0.1)  # Non-blocking spin
                 self.xbox_to_command()
+                ## TODO
+                # 1. get action
+                print("teleop_spot: ", self.action)
+                print("teleop_spot: ", self.gripper)
+                # 0 closed 1 open
+                # 2. get state: 
+                if any(self.action):
+                    robot_state = self.robot_state_client.get_robot_state() 
+                    # print(" robot_state.kinematic_state: ", robot_state.kinematic_state.joint_states)
+                # 3. get images
                 
         except KeyboardInterrupt:
             pass
