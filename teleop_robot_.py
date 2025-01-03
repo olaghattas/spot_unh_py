@@ -118,6 +118,7 @@ class TeleopInterface:
         
         elif buttons_pressed == "ALB":
             print("Power On")
+            self.robot.power_on(timeout_sec=20)
             time.sleep(2.0)
             
         elif buttons_pressed == "BLB":
@@ -164,18 +165,20 @@ class TeleopInterface:
             print("close gripper")
         
         if body == "Left":
-            if buttons_pressed == "RT":
+            print(buttons_pressed)
+            if buttons_pressed == "LTRT":
                 v_rot_ = VELOCITY_BASE_ANGULAR
-                print("RTLeft")
+                print("LTRT Left")
             else:    
                 # self._strafe_left()
                 v_y_ = VELOCITY_BASE_SPEED
                 print("Left")
             
         if body == "Right":
-            if buttons_pressed == "RT":
+            print(buttons_pressed)
+            if buttons_pressed == "LTRT":
                 v_rot_ = -VELOCITY_BASE_ANGULAR
-                print("RT Right")
+                print("LTRT Right")
             else:    
                 # self._strafe_right()
                 v_y_ = -VELOCITY_BASE_SPEED

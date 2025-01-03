@@ -167,7 +167,7 @@ class TeleopInterface:
             print("close gripper")
         
         if body == "Left":
-            if buttons_pressed == "RT":
+            if buttons_pressed == "LTRT":
                 v_rot_ = v_rz_ = VELOCITY_BASE_ANGULAR
                 print("RTLeft")
             else:    
@@ -175,7 +175,7 @@ class TeleopInterface:
                 print("Left")
             
         if body == "Right":
-            if buttons_pressed == "RT":
+            if buttons_pressed == "LTRT":
                 v_rot_ = v_rz_ = -VELOCITY_BASE_ANGULAR
                 print("RT Right")
             else:    
@@ -183,7 +183,7 @@ class TeleopInterface:
                 print("Right")
             
         if body == "Up": ## forward
-            if buttons_pressed == "RT":
+            if buttons_pressed == "LTRT":
                 # move body up
                 prev_body_height = self.body_height
                 self._change_height(1)
@@ -194,7 +194,7 @@ class TeleopInterface:
 
         
         if body == "Down": ## backward
-            if buttons_pressed == "RT":
+            if buttons_pressed == "LTRT":
                 # move body up
                 prev_body_height = self.body_height
                 self._change_height(-1)
@@ -207,8 +207,8 @@ class TeleopInterface:
         if any(body_):
             self._velocity_cmd_helper('move body', v_x=v_x_ , v_y=v_y_, v_rot=v_rot_)
             ## to move arm with body
-            self._arm_cylindrical_velocity_cmd_helper('EndEff Translation', v_r = v_r_, v_theta = v_theta_, v_z = v_z_)    
-            self._arm_angular_velocity_cmd_helper('EndEff Rotation', v_rz=v_rz_)
+            # self._arm_cylindrical_velocity_cmd_helper('EndEff Translation', v_r = v_r_, v_theta = v_theta_, v_z = v_z_)    
+            # self._arm_angular_velocity_cmd_helper('EndEff Rotation', v_rz=v_rz_)
 
         
         end_eff_2 = [v_z_, v_rx_]
@@ -251,8 +251,8 @@ class TeleopInterface:
         self.robot.logger.info('Robot powered on.')
         
         #walk
-        self.mobility_params = bosdyn.api.spot.spot_command_pb2.MobilityParams(
-            locomotion_hint=bosdyn.api.spot.spot_command_pb2.HINT_SPEED_SELECT_TROT,stair_hint=0)
+        self.mobility_params = spot_command_pb2.MobilityParams(
+            locomotion_hint= spot_command_pb2.HINT_SPEED_SELECT_TROT,stair_hint=0)
         # if self._estop_endpoint is not None:
         #     self._estop_endpoint.force_simple_setup(
         #     )  # Set this endpoint as the robot's sole estop.

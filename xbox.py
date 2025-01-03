@@ -180,6 +180,8 @@ class JoySubscriber(Node):
             | Y                  | Endeff Down              |
             | RT                 | Sit                      |
             | LT                 | Stand                    |
+            | RB                 | Open gripper             |
+            | LB                 | Close gripper            |
             |                    |                          |
             | RT + :             |                          |
             | - A                | Dock                     |
@@ -210,8 +212,9 @@ class JoySubscriber(Node):
             |  - Down            | Go backward              |
             |  - Left            | Strafe left              |
             |  - Right           | Strafe right             |
-            |                    |                          |
-            |  -- + RT           |                          |
+            |  -- + LTRT         |                          |
+            |   - Up             | Height Up                |
+            |   - Down           | Height Down              |
             |   - Left           | Rotate left              |
             |   - Right          | Rotate right             |
             |                    |                          |

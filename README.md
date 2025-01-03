@@ -50,5 +50,5 @@ TO DO:
 2) extract camera images
 4) merge keys so dock undock take RT/A and sit stand tak RT/B and use LT RT to rotate body
 5) change height of robot
-6) move hand with body
+6) move hand with body result: because the arm moves slower than the body even thugh we are applying same velo the motion is not as smot even if we apply the transformation it still doesnt so for now we have to control them separately
 7) setup dataset collection

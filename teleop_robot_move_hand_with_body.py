@@ -128,7 +128,7 @@ class TeleopInterface:
             time.sleep(2.0)
             
         elif buttons_pressed == "A":
-            v_z_ = -0.5 * VELOCITY_HAND_NORMALIZED
+            v_z_ = -0.75 * VELOCITY_HAND_NORMALIZED
             print("Go down")
 
         elif buttons_pressed == "B":
@@ -140,7 +140,7 @@ class TeleopInterface:
             print("CCW")
             
         elif buttons_pressed == "Y":
-            v_z_ = 0.5 * VELOCITY_HAND_NORMALIZED
+            v_z_ = 0.75 * VELOCITY_HAND_NORMALIZED
             print("Go up")
         
         elif buttons_pressed == "LT":
@@ -162,17 +162,17 @@ class TeleopInterface:
             print("close gripper")
         
         if body == "Left":
-            if buttons_pressed == "RT":
+            if buttons_pressed == "LTRT":
                 v_rot_ = v_rz_ = VELOCITY_BASE_ANGULAR
-                print("RTLeft")
+                print("LTRT Left")
             else:    
                 v_y_ = v_theta_ = VELOCITY_BASE_SPEED
                 print("Left")
             
         if body == "Right":
-            if buttons_pressed == "RT":
+            if buttons_pressed == "LTRT":
                 v_rot_ = v_rz_ = -VELOCITY_BASE_ANGULAR
-                print("RT Right")
+                print("LTRT Right")
             else:    
                 v_y_ = v_theta_ = -VELOCITY_BASE_SPEED
                 print("Right")
@@ -188,11 +188,13 @@ class TeleopInterface:
             
         body_ = [v_x_ , v_y_, v_rot_]
         if any(body_):
+            print("move body")
+            print(v_x_ , v_y_, v_rot_)
+            
             self._velocity_cmd_helper('move body', v_x=v_x_ , v_y=v_y_, v_rot=v_rot_)
             ## to move arm with body
             self._arm_cylindrical_velocity_cmd_helper('EndEff Translation', v_r = v_r_, v_theta = v_theta_, v_z = v_z_)    
             self._arm_angular_velocity_cmd_helper('EndEff Rotation', v_rz=v_rz_)
-
         
         end_eff_2 = [v_z_, v_rx_]
         
@@ -205,7 +207,7 @@ class TeleopInterface:
         if any(end_eff) or any(end_eff_2):
             if end_eff[0]:
                 v_r_ = end_eff[0] * VELOCITY_HAND_NORMALIZED
-   
+                
             if end_eff[1]:
                 v_theta_ = end_eff[1] * VELOCITY_HAND_NORMALIZED
                 
@@ -214,7 +216,8 @@ class TeleopInterface:
                 
             if end_eff[3]:
                 v_rz_ = -end_eff[3] * VELOCITY_ANGULAR_HAND
-                
+            
+            print(v_r_, v_z_, v_theta_, v_ry_, v_rz_)
             self._arm_cylindrical_velocity_cmd_helper('EndEff Translation', v_r = v_r_, v_theta = v_theta_, v_z = v_z_)    
             self._arm_angular_velocity_cmd_helper('EndEff Rotation',  v_rx=v_rx_, v_ry=v_ry_, v_rz=v_rz_)
 
