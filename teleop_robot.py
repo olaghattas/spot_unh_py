@@ -19,10 +19,12 @@ from rclpy.node import Node
 from sensor_msgs.msg import Joy
 from bosdyn.client.async_tasks import AsyncPeriodicQuery
 from bosdyn.client.lease import Error as LeaseBaseError
-LOGGER = logging.getLogger() ## shufe keef t2emiya
+
 from xbox import JoySubscriber
 
-#### BRT and BLT are empty
+
+
+####  and BLT are empty
 COMMAND_INPUT_RATE = 0.1
 VELOCITY_CMD_DURATION = VELOCITY_CMD_DURATION_ARM = 0.2  # seconds 0.6 default
 
@@ -39,7 +41,7 @@ class AsyncRobotState(AsyncPeriodicQuery):
     """Grab robot state."""
 
     def __init__(self, robot_state_client):
-        super(AsyncRobotState, self).__init__('robot_state', robot_state_client, LOGGER,
+        super(AsyncRobotState, self).__init__('robot_state', robot_state_client, logging.getLogger(),
                                               period_sec=0.2)
 
     def _start_query(self):
@@ -71,10 +73,12 @@ class TeleopInterface:
         self.dock_id = 520
         # v_x_, v_y_, v_rot_, v_r_, v_theta_, v_z_, v_rx_, v_ry_, v_rz_
         self.action = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+        # 0 closed 1 open
         self.gripper = 0 ## initially gripper closed
         
         ## added to track when we unstow becasue it easier to move with hand unstowed
         self.unstow = 0 # 1 when triggered
+        self.start_ = False ## to start recording or use it as a flag
          
     def xbox_to_command(self):
         buttons_pressed = self.node.buttons_pressed
@@ -106,7 +110,9 @@ class TeleopInterface:
             time.sleep(2.0)
         
         elif buttons_pressed == "BRT":
-            print("NOTHING")
+            print("START FLAG")
+            print(self.start_)
+            self.start_ = not self.start_
             time.sleep(2.0)
             
         elif buttons_pressed == "BLT":
@@ -256,7 +262,7 @@ class TeleopInterface:
 
     def shutdown(self):
         """Release control of robot as gracefully as possible."""
-        LOGGER.info('Shutting down ArmWasdInterface.')
+        logging.getLogger().info('Shutting down ArmWasdInterface.')
         if self._estop_keepalive:
             # This stops the check-in thread but does not stop the robot.
             self._estop_keepalive.shutdown()
@@ -415,6 +421,136 @@ class TeleopInterface:
                 self._lease_keepalive = None  
                   
     def teleop_spot(self):
+        import numpy as np
+        print("TELEOP")
+        try:
+            self.node.print_button_combination()
+            # data = {"action": [], "joint_states": [], "gripper_states": []}
+            data = {"action": []}
+
+            folder = "/home/olagh/Desktop/trial_demo"
+            previous_state_dict = None
+            # start = False
+            while rclpy.ok():
+                prev_start = self.start_
+                rclpy.spin_once(self.node, timeout_sec=0.1)  # Non-blocking spin
+                
+                start = self.start_
+                self.xbox_to_command()
+                ## TODO
+                # 1. get action
+                # print("teleop_spot: ", self.action)
+                # print("teleop_spot: ", self.gripper)
+                
+                # if start:
+                
+                print("TELEOP DEMO STARTED")
+                # print("teleop_spot: ", teleop_spot.action)
+                # print("teleop_spot: ", teleop_spot.gripper)
+                action = self.action
+                state = self.robot_state_client.get_robot_state() 
+                data["action"].append(action)
+                
+                
+                
+                # state.kinematic_state.joint_states
+                # print(state)
+                # print(state.kinematic_state)
+                # print(state.kinematic_state.joint_states)
+                
+                for joint_state in state.kinematic_state.joint_states:
+                    print(f"Joint: {joint_state.name}, Position: {joint_state.position.value}")
+
+                # joint_states = 
+                # Extract positions into a NumPy array
+                # joint_positions = np.array([joint["position"] for joint in state.kinematic_state.joint_states])
+
+                # manipulator_state {
+                #   gripper_open_percentage: 1.3810038566589355
+                #   estimated_end_effector_force_in_hand {
+                #     x: 11.89985179901123
+                #     y: 1.3832470178604126
+                #     z: 15.156830787658691
+                #   }
+                #   stow_state: STOWSTATE_STOWED
+                #   velocity_of_hand_in_vision {
+                #     linear {
+                #       x: 0.0003575154987629503
+                #       y: 0.00038093348848633468
+                #       z: -0.002799835754558444
+                #     }
+                #     angular {
+                #       x: -0.01599578931927681
+                #       y: -0.0016308031044900417
+                #       z: -0.0069143576547503471
+                #     }
+                #   }
+                #   velocity_of_hand_in_odom {
+                #     linear {
+                #       x: 0.00052068696822971106
+                #       y: -4.2569168726913631e-05
+                #       z: -0.0027998352888971567
+                #     }
+                #     angular {
+                #       x: -0.011235825717449188
+                #       y: 0.01150134950876236
+                #       z: -0.0069143576547503471
+                #     }
+                #   }
+                # }
+
+                # print("tyoe1", type(state))
+                # print("tyoe", type(state.kinematic_state))
+                # print("type0",  type(state.kinematic_state.joint_states))
+                    # state_dict = {
+                    #     "joint_states": np.array(state.kinematic_state.joint_states),
+                    #     "gripper_states": np.array(self.gripper),
+                    # }
+                    
+                    # if previous_state_dict is not None:
+                    #     for proprio_key in state_dict.keys():
+                    #         proprio_state = state_dict[proprio_key]
+                    #         if np.sum(np.abs(proprio_state)) <= 1e-6:
+                    #             proprio_state = previous_state_dict[proprio_key]
+                    #         state_dict[proprio_key] = np.copy(proprio_state)
+                            
+                    # for proprio_key in state_dict.keys():
+                    #     data[proprio_key].append(state_dict[proprio_key])
+
+                    # previous_state_dict = state_dict
+                    
+                    # # 3. get images
+                    # for camera_id in camera_ids:
+                    #     img_info = cr_interfaces[camera_id].get_img_info()
+                    #     data[f"camera_{camera_id}"].append(img_info)
+                        
+
+                # start turned from true to false signaling to stop recording
+                # if not start and prev_start:
+                    # os.makedirs(folder, exist_ok=True)
+                    
+                    # np.savez(f"{folder}/testing_demo_action", data=np.array(data["action"]))
+                    # np.savez(f"{folder}/testing_demo_ee_states", data=np.array(data["ee_states"]))
+                    # np.savez(f"{folder}/testing_demo_joint_states", data=np.array(data["joint_states"]))
+                    # np.savez(f"{folder}/testing_demo_gripper_states",data=np.array(data["gripper_states"]),)
+                
+                
+                
+                # 2. get state: 
+                # if any(self.action):
+                #     robot_state = self.robot_state_client.get_robot_state() 
+                    # print(" robot_state.kinematic_state: ", robot_state.kinematic_state.joint_states)
+                # 3. get images
+                
+        except KeyboardInterrupt:
+            pass
+        finally:
+            self.node.destroy_node()
+            rclpy.shutdown()
+            self._safe_power_off()
+            time.sleep(2.0)
+    
+    def teleop_spot_backup(self):
         print("TELEOP")
         try:
             self.node.print_button_combination()
@@ -425,6 +561,8 @@ class TeleopInterface:
                 # 1. get action
                 print("teleop_spot: ", self.action)
                 print("teleop_spot: ", self.gripper)
+                data = {"action": [], "joint_states": [], "gripper_states": []}
+                
                 # 0 closed 1 open
                 # 2. get state: 
                 if any(self.action):
@@ -467,7 +605,7 @@ def main():
     try:
         teleop_spot.start()
     except (bosdyn.client.ResponseError, bosdyn.client.RpcError) as err:
-        LOGGER.error('Failed to initialize robot communication: %s', err)
+        logging.getLogger().error('Failed to initialize robot communication: %s', err)
         return False
 
     try:
