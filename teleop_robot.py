@@ -425,14 +425,14 @@ class TeleopInterface:
         print("TELEOP")
         try:
             self.node.print_button_combination()
-            # data = {"action": [], "joint_states": [], "gripper_states": []}
-            data = {"action": []}
+            # # data = {"action": [], "joint_states": [], "gripper_states": []}
+            # data = {"action": []}
 
-            folder = "/home/olagh/Desktop/trial_demo"
-            previous_state_dict = None
+            # folder = "/home/olagh/Desktop/trial_demo"
+            # previous_state_dict = None
             # start = False
             while rclpy.ok():
-                prev_start = self.start_
+                # prev_start = self.start_
                 rclpy.spin_once(self.node, timeout_sec=0.1)  # Non-blocking spin
                 
                 start = self.start_
@@ -444,27 +444,14 @@ class TeleopInterface:
                 
                 # if start:
                 
-                print("TELEOP DEMO STARTED")
+                # print("TELEOP DEMO STARTED")
                 # print("teleop_spot: ", teleop_spot.action)
                 # print("teleop_spot: ", teleop_spot.gripper)
-                action = self.action
-                state = self.robot_state_client.get_robot_state() 
-                data["action"].append(action)
+                # action = self.action
+                # state = self.robot_state_client.get_robot_state() 
+                # data["action"].append(action)
                 
                 
-                
-                # state.kinematic_state.joint_states
-                # print(state)
-                # print(state.kinematic_state)
-                # print(state.kinematic_state.joint_states)
-                
-                for joint_state in state.kinematic_state.joint_states:
-                    print(f"Joint: {joint_state.name}, Position: {joint_state.position.value}")
-
-                # joint_states = 
-                # Extract positions into a NumPy array
-                # joint_positions = np.array([joint["position"] for joint in state.kinematic_state.joint_states])
-
                 # manipulator_state {
                 #   gripper_open_percentage: 1.3810038566589355
                 #   estimated_end_effector_force_in_hand {

@@ -13,7 +13,7 @@
         |                    |                          |
         | RT + :             |                          |
         | - A                | Dock/Undock              |
-        | - B                |                          |
+        | - B                | Start Flag               |
         |                    |                          |
         | RB + :             |                          |
         | - A                | Stow                     |
