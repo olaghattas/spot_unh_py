@@ -185,7 +185,7 @@ class JoySubscriber(Node):
             |                    |                          |
             | RT + :             |                          |
             | - A                | Dock/Undock              |
-            | - B                |                          |
+            | - B                | START FLAG               |
             |                    |                          |
             | RB + :             |                          |
             | - A                | Stow                     |

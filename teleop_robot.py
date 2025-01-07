@@ -19,15 +19,18 @@ from rclpy.node import Node
 from sensor_msgs.msg import Joy
 from bosdyn.client.async_tasks import AsyncPeriodicQuery
 from bosdyn.client.lease import Error as LeaseBaseError
+from bosdyn.client.image import ImageClient
 
 from xbox import JoySubscriber
 
+def sign(x):
+    return (x > 0) - (x < 0)
 
 
 ####  and BLT are empty
 COMMAND_INPUT_RATE = 0.1
-VELOCITY_CMD_DURATION = VELOCITY_CMD_DURATION_ARM = 0.2  # seconds 0.6 default
-
+VELOCITY_CMD_DURATION = 0.2  # seconds 0.6 default
+VELOCITY_CMD_DURATION_ARM = 0.5 ## as in wasd
 
 VELOCITY_BASE_SPEED = 0.5  # m/s
 VELOCITY_BASE_ANGULAR = 0.8  # rad/sec
@@ -111,8 +114,9 @@ class TeleopInterface:
         
         elif buttons_pressed == "BRT":
             print("START FLAG")
-            print(self.start_)
+            
             self.start_ = not self.start_
+            print(self.start_)
             time.sleep(2.0)
             
         elif buttons_pressed == "BLT":
@@ -140,6 +144,7 @@ class TeleopInterface:
             
         elif buttons_pressed == "A":
             v_z_ = -0.5 * VELOCITY_HAND_NORMALIZED
+            # v_z_ = -1 * VELOCITY_HAND_NORMALIZED
             print("Go down")
 
         elif buttons_pressed == "B":
@@ -152,6 +157,7 @@ class TeleopInterface:
             
         elif buttons_pressed == "Y":
             v_z_ = 0.5 * VELOCITY_HAND_NORMALIZED
+            # v_z_ = VELOCITY_HAND_NORMALIZED
             print("Go up")
         
         elif buttons_pressed == "LT":
@@ -219,10 +225,17 @@ class TeleopInterface:
             #[Right Stick Y, Right Stick X, Left Stick Y, Left Stick X]
             # mapping end eff position
             #[Transl forward/back,Transl left/right, Rotation forward/back,Rotation left/right]
-
+            
+        # debug to see if they got separted do i get same as wasd control:
+        # result: still didnt work as wasd 
+        # if any(end_eff_2):
+        #     self._arm_cylindrical_velocity_cmd_helper('EndEff Translation', v_r = 0.0, v_theta = 0.0, v_z = v_z_)    
+        #     # self._arm_angular_velocity_cmd_helper('EndEff Rotation',  v_rx=v_rx_, v_ry=v_ry_, v_rz=v_rz_)
+        
         if any(end_eff) or any(end_eff_2):
             if end_eff[0]:
                 v_r_ = end_eff[0] * VELOCITY_HAND_NORMALIZED
+                # v_r_ = sign(end_eff[0]) * VELOCITY_HAND_NORMALIZED
    
             if end_eff[1]:
                 v_theta_ = end_eff[1] * VELOCITY_HAND_NORMALIZED
@@ -231,11 +244,12 @@ class TeleopInterface:
                 v_ry_ = end_eff[2] * VELOCITY_ANGULAR_HAND
                 
             if end_eff[3]:
-                v_rz_ = -end_eff[3] * VELOCITY_ANGULAR_HAND
+                v_rz_ = -1 * end_eff[3] * VELOCITY_ANGULAR_HAND
                 
             self._arm_cylindrical_velocity_cmd_helper('EndEff Translation', v_r = v_r_, v_theta = v_theta_, v_z = v_z_)    
             self._arm_angular_velocity_cmd_helper('EndEff Rotation',  v_rx=v_rx_, v_ry=v_ry_, v_rz=v_rz_)
-
+            # self._arm_cylindrical_velocity_cmd_helper('EndEff Translation', v_r = v_r_, v_theta = v_theta_, v_z = 0.0)    
+            # self._arm_angular_velocity_cmd_helper('EndEff Rotation',  v_rx=v_rx_, v_ry=v_ry_, v_rz=v_rz_)
         # 
         self.action = [v_x_, v_y_, v_rot_, v_r_, v_theta_, v_z_, v_rx_, v_ry_, v_rz_]
         # print("xbox_to_command: ", self.action)
@@ -383,7 +397,7 @@ class TeleopInterface:
             cylindrical_velocity=cylindrical_velocity,
             angular_velocity_of_hand_rt_odom_in_hand=angular_velocity_of_hand_rt_odom_in_hand,
             end_time=self.robot.time_sync.robot_timestamp_from_local_secs(time.time() +
-                                                                           VELOCITY_CMD_DURATION))
+                                                                           VELOCITY_CMD_DURATION_ARM))
 
         self._arm_velocity_cmd_helper(arm_velocity_command=arm_velocity_command, desc=desc)
 
@@ -395,7 +409,7 @@ class TeleopInterface:
             arm_velocity_command)
 
         self._start_robot_command(desc, robot_command,
-                                  end_time_secs=time.time() + VELOCITY_CMD_DURATION)
+                                  end_time_secs=time.time() + VELOCITY_CMD_DURATION_ARM)
     
     
     def _toggle_gripper_open(self):
@@ -420,114 +434,140 @@ class TeleopInterface:
                 self._lease_keepalive.shutdown()
                 self._lease_keepalive = None  
                   
+    def _maybe_display_image(self, image, display_time=3.0):
+        """Try to display image, if client has correct deps."""
+        try:
+            import io
+
+            from PIL import Image
+        except ImportError:
+            logger = bosdyn.client.util.get_logger()
+            logger.warning('Missing dependencies. Can\'t display image.')
+            return
+        try:
+            image = Image.open(io.BytesIO(image.data))
+            image.show()
+            time.sleep(display_time)
+        except Exception as exc:
+            logger = bosdyn.client.util.get_logger()
+            logger.warning('Exception thrown displaying image. %r', exc)
+
+
     def teleop_spot(self):
         import numpy as np
         print("TELEOP")
         try:
             self.node.print_button_combination()
-            # # data = {"action": [], "joint_states": [], "gripper_states": []}
+            data = {"action": [], "joint_states": [], "gripper_states": []}
             # data = {"action": []}
-
-            # folder = "/home/olagh/Desktop/trial_demo"
-            # previous_state_dict = None
-            # start = False
+            cameras = ["frontleft_fisheye_image", "frontright_fisheye_image", "hand_color_image"]
+            folder = "/home/olagh/Desktop/trial_demo"
+            previous_state_dict = None
+            start = False
             while rclpy.ok():
-                # prev_start = self.start_
+                prev_start = self.start_
                 rclpy.spin_once(self.node, timeout_sec=0.1)  # Non-blocking spin
                 
                 start = self.start_
                 self.xbox_to_command()
-                ## TODO
-                # 1. get action
-                # print("teleop_spot: ", self.action)
-                # print("teleop_spot: ", self.gripper)
                 
-                # if start:
+                image_client = self.robot.ensure_client(ImageClient.default_service_name)
+                sources = image_client.list_image_sources()
+               
+                # image_response_frontleft = image_client.get_image_from_sources(['frontleft_fisheye_image'])
+                # image_response_frontright = image_client.get_image_from_sources(['frontright_fisheye_image'])
+                # image_response_hand_color_image = image_client.get_image_from_sources(['hand_color_image'])
                 
-                # print("TELEOP DEMO STARTED")
-                # print("teleop_spot: ", teleop_spot.action)
-                # print("teleop_spot: ", teleop_spot.gripper)
-                # action = self.action
-                # state = self.robot_state_client.get_robot_state() 
-                # data["action"].append(action)
-                
-                
-                # manipulator_state {
-                #   gripper_open_percentage: 1.3810038566589355
-                #   estimated_end_effector_force_in_hand {
-                #     x: 11.89985179901123
-                #     y: 1.3832470178604126
-                #     z: 15.156830787658691
-                #   }
-                #   stow_state: STOWSTATE_STOWED
-                #   velocity_of_hand_in_vision {
-                #     linear {
-                #       x: 0.0003575154987629503
-                #       y: 0.00038093348848633468
-                #       z: -0.002799835754558444
-                #     }
-                #     angular {
-                #       x: -0.01599578931927681
-                #       y: -0.0016308031044900417
-                #       z: -0.0069143576547503471
-                #     }
-                #   }
-                #   velocity_of_hand_in_odom {
-                #     linear {
-                #       x: 0.00052068696822971106
-                #       y: -4.2569168726913631e-05
-                #       z: -0.0027998352888971567
-                #     }
-                #     angular {
-                #       x: -0.011235825717449188
-                #       y: 0.01150134950876236
-                #       z: -0.0069143576547503471
-                #     }
-                #   }
-                # }
+                ## depth bad
+                # image_response_hand_image = image_client.get_image_from_sources(['hand_image'])
 
-                # print("tyoe1", type(state))
-                # print("tyoe", type(state.kinematic_state))
-                # print("type0",  type(state.kinematic_state.joint_states))
-                    # state_dict = {
-                    #     "joint_states": np.array(state.kinematic_state.joint_states),
-                    #     "gripper_states": np.array(self.gripper),
+                # self._maybe_display_image(image_response_frontleft[0].shot.image)
+                # self._maybe_display_image(image_response_frontright[0].shot.image)
+                # self._maybe_display_image(image_response_hand_color_image[0].shot.image)
+
+                # print(image_response_frontleft[0].shot.image)
+               
+
+                if start:
+                
+                    print("TELEOP DEMO STARTED")
+                    action = self.action
+                    state = self.robot_state_client.get_robot_state() 
+                    data["action"].append(action)
+                    
+                    
+                    # manipulator_state {
+                    #   gripper_open_percentage: 1.3810038566589355
+                    #   estimated_end_effector_force_in_hand {
+                    #     x: 11.89985179901123
+                    #     y: 1.3832470178604126
+                    #     z: 15.156830787658691
+                    #   }
+                    #   stow_state: STOWSTATE_STOWED
+                    #   velocity_of_hand_in_vision {
+                    #     linear {
+                    #       x: 0.0003575154987629503
+                    #       y: 0.00038093348848633468
+                    #       z: -0.002799835754558444
+                    #     }
+                    #     angular {
+                    #       x: -0.01599578931927681
+                    #       y: -0.0016308031044900417
+                    #       z: -0.0069143576547503471
+                    #     }
+                    #   }
+                    #   velocity_of_hand_in_odom {
+                    #     linear {
+                    #       x: 0.00052068696822971106
+                    #       y: -4.2569168726913631e-05
+                    #       z: -0.0027998352888971567
+                    #     }
+                    #     angular {
+                    #       x: -0.011235825717449188
+                    #       y: 0.01150134950876236
+                    #       z: -0.0069143576547503471
+                    #     }
+                    #   }
                     # }
-                    
-                    # if previous_state_dict is not None:
-                    #     for proprio_key in state_dict.keys():
-                    #         proprio_state = state_dict[proprio_key]
-                    #         if np.sum(np.abs(proprio_state)) <= 1e-6:
-                    #             proprio_state = previous_state_dict[proprio_key]
-                    #         state_dict[proprio_key] = np.copy(proprio_state)
-                            
-                    # for proprio_key in state_dict.keys():
-                    #     data[proprio_key].append(state_dict[proprio_key])
 
-                    # previous_state_dict = state_dict
+                    state_dict = {
+                        "joint_states": np.array(state.kinematic_state.joint_states),
+                        "gripper_states": np.array(self.gripper),
+                    }
                     
-                    # # 3. get images
-                    # for camera_id in camera_ids:
-                    #     img_info = cr_interfaces[camera_id].get_img_info()
-                    #     data[f"camera_{camera_id}"].append(img_info)
-                        
+                    if previous_state_dict is not None:
+                        for proprio_key in state_dict.keys():
+                            proprio_state = state_dict[proprio_key]
+                            if np.sum(np.abs(proprio_state)) <= 1e-6:
+                                proprio_state = previous_state_dict[proprio_key]
+                            state_dict[proprio_key] = np.copy(proprio_state)
+                            
+                    for proprio_key in state_dict.keys():
+                        data[proprio_key].append(state_dict[proprio_key])
+
+                    previous_state_dict = state_dict
+                    
+                    
+                    for camera in cameras:
+                        image = image_client.get_image_from_sources([camera])[0].shot.image
+                        data[f"camera_{camera}"].append(image)
+                    ## ERROR - Teleop has thrown an error: 'camera_frontleft_fisheye_image'
+
 
                 # start turned from true to false signaling to stop recording
-                # if not start and prev_start:
-                    # os.makedirs(folder, exist_ok=True)
-                    
-                    # np.savez(f"{folder}/testing_demo_action", data=np.array(data["action"]))
+                
+                if not start and prev_start:
+                    os.makedirs(folder, exist_ok=True)
+                
+                    np.savez(f"{folder}/testing_demo_action", data=np.array(data["action"]))
                     # np.savez(f"{folder}/testing_demo_ee_states", data=np.array(data["ee_states"]))
-                    # np.savez(f"{folder}/testing_demo_joint_states", data=np.array(data["joint_states"]))
-                    # np.savez(f"{folder}/testing_demo_gripper_states",data=np.array(data["gripper_states"]),)
-                
-                
-                
-                # 2. get state: 
-                # if any(self.action):
-                #     robot_state = self.robot_state_client.get_robot_state() 
-                    # print(" robot_state.kinematic_state: ", robot_state.kinematic_state.joint_states)
-                # 3. get images
+                    np.savez(f"{folder}/testing_demo_joint_states", data=np.array(data["joint_states"]))
+                    np.savez(f"{folder}/testing_demo_gripper_states",data=np.array(data["gripper_states"]))
+                    for camera in cameras:
+                        np.savez(
+                            f"{folder}/testing_demo_camera_{camera}",
+                            data=np.array(data[f"camera_{camera}"]),
+                        )
                 
         except KeyboardInterrupt:
             pass
@@ -549,13 +589,10 @@ class TeleopInterface:
                 print("teleop_spot: ", self.action)
                 print("teleop_spot: ", self.gripper)
                 data = {"action": [], "joint_states": [], "gripper_states": []}
-                
-                # 0 closed 1 open
-                # 2. get state: 
+            
                 if any(self.action):
                     robot_state = self.robot_state_client.get_robot_state() 
-                    # print(" robot_state.kinematic_state: ", robot_state.kinematic_state.joint_states)
-                # 3. get images
+               
                 
         except KeyboardInterrupt:
             pass
