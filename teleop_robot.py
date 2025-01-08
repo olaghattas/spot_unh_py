@@ -456,82 +456,49 @@ class TeleopInterface:
     def teleop_spot(self):
         import numpy as np
         print("TELEOP")
+        from datetime import datetime
         try:
             self.node.print_button_combination()
-            data = {"action": [], "joint_states": [], "gripper_states": []}
+            
             # data = {"action": []}
             cameras = ["frontleft_fisheye_image", "frontright_fisheye_image", "hand_color_image"]
-            folder = "/home/olagh/Desktop/trial_demo"
+            
+            # Generate a timestamp 
+            timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+            # Create the folder with the timestamp
+            folder = f"/home/olagh/Desktop/trial_demo_{timestamp}"
+            
             previous_state_dict = None
             start = False
+            
+            data = {"action": [], "joint_states": [], "gripper_states": []}
+            for camera in cameras:
+                data[f"camera_{camera}"] = []
+                
             while rclpy.ok():
-                prev_start = self.start_
+                prev_start = start
+                # print("prev_start" ,prev_start)
                 rclpy.spin_once(self.node, timeout_sec=0.1)  # Non-blocking spin
                 
                 start = self.start_
+    
                 self.xbox_to_command()
                 
                 image_client = self.robot.ensure_client(ImageClient.default_service_name)
                 sources = image_client.list_image_sources()
-               
-                # image_response_frontleft = image_client.get_image_from_sources(['frontleft_fisheye_image'])
-                # image_response_frontright = image_client.get_image_from_sources(['frontright_fisheye_image'])
-                # image_response_hand_color_image = image_client.get_image_from_sources(['hand_color_image'])
                 
-                ## depth bad
-                # image_response_hand_image = image_client.get_image_from_sources(['hand_image'])
-
-                # self._maybe_display_image(image_response_frontleft[0].shot.image)
-                # self._maybe_display_image(image_response_frontright[0].shot.image)
-                # self._maybe_display_image(image_response_hand_color_image[0].shot.image)
-
-                # print(image_response_frontleft[0].shot.image)
-               
-
+                # print("start", start)
                 if start:
-                
-                    print("TELEOP DEMO STARTED")
+                    # print("TELEOP DEMO STARTED")
                     action = self.action
                     state = self.robot_state_client.get_robot_state() 
                     data["action"].append(action)
                     
-                    
-                    # manipulator_state {
-                    #   gripper_open_percentage: 1.3810038566589355
-                    #   estimated_end_effector_force_in_hand {
-                    #     x: 11.89985179901123
-                    #     y: 1.3832470178604126
-                    #     z: 15.156830787658691
-                    #   }
-                    #   stow_state: STOWSTATE_STOWED
-                    #   velocity_of_hand_in_vision {
-                    #     linear {
-                    #       x: 0.0003575154987629503
-                    #       y: 0.00038093348848633468
-                    #       z: -0.002799835754558444
-                    #     }
-                    #     angular {
-                    #       x: -0.01599578931927681
-                    #       y: -0.0016308031044900417
-                    #       z: -0.0069143576547503471
-                    #     }
-                    #   }
-                    #   velocity_of_hand_in_odom {
-                    #     linear {
-                    #       x: 0.00052068696822971106
-                    #       y: -4.2569168726913631e-05
-                    #       z: -0.0027998352888971567
-                    #     }
-                    #     angular {
-                    #       x: -0.011235825717449188
-                    #       y: 0.01150134950876236
-                    #       z: -0.0069143576547503471
-                    #     }
-                    #   }
-                    # }
+                    joint_states = state.kinematic_state.joint_states
+                    positions = np.array([joint.position.value for joint in joint_states])
 
                     state_dict = {
-                        "joint_states": np.array(state.kinematic_state.joint_states),
+                        "joint_states": positions,
                         "gripper_states": np.array(self.gripper),
                     }
                     
@@ -555,8 +522,8 @@ class TeleopInterface:
 
 
                 # start turned from true to false signaling to stop recording
-                
                 if not start and prev_start:
+                    # print("ksdahfkdgfkjhdsfghkjdkfvhdf")
                     os.makedirs(folder, exist_ok=True)
                 
                     np.savez(f"{folder}/testing_demo_action", data=np.array(data["action"]))
