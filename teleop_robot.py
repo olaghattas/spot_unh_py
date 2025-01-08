@@ -29,8 +29,8 @@ def sign(x):
 
 ####  and BLT are empty
 COMMAND_INPUT_RATE = 0.1
-VELOCITY_CMD_DURATION = 0.2  # seconds 0.6 default
-VELOCITY_CMD_DURATION_ARM = 0.5 ## as in wasd
+VELOCITY_CMD_DURATION = VELOCITY_CMD_DURATION_ARM = 0.2  # seconds 0.6 default
+# VELOCITY_CMD_DURATION_ARM = 0.5 ## as in wasd
 
 VELOCITY_BASE_SPEED = 0.5  # m/s
 VELOCITY_BASE_ANGULAR = 0.8  # rad/sec
@@ -182,18 +182,18 @@ class TeleopInterface:
         
         if body == "Left":
             if buttons_pressed == "LTRT":
-                v_rot_ = VELOCITY_BASE_ANGULAR
+                v_rot_ = v_rz_ = VELOCITY_BASE_ANGULAR
                 print("RTLeft")
             else:    
-                v_y_ = VELOCITY_BASE_SPEED
+                v_y_ = v_theta_ = VELOCITY_BASE_SPEED
                 print("Left")
             
         if body == "Right":
             if buttons_pressed == "LTRT":
-                v_rot_ = -VELOCITY_BASE_ANGULAR
+                v_rot_ =  v_rz_ = -VELOCITY_BASE_ANGULAR
                 print("RT Right")
             else:    
-                v_y_ = -VELOCITY_BASE_SPEED
+                v_y_ = v_theta_ = -VELOCITY_BASE_SPEED
                 print("Right")
             
         if body == "Up": ## forward
@@ -201,7 +201,7 @@ class TeleopInterface:
                 # move body up
                 self._change_height(1)
             else: 
-                v_x_ = VELOCITY_BASE_SPEED
+                v_x_ = v_r_ = VELOCITY_BASE_SPEED
             print("Up")
 
         
@@ -210,13 +210,16 @@ class TeleopInterface:
                 # move body up
                 self._change_height(-1)
             else:
-                v_x_ = -VELOCITY_BASE_SPEED
+                v_x_ = v_r_ = -VELOCITY_BASE_SPEED
             print("Down")
             
         body_ = [v_x_ , v_y_, v_rot_]
         
         if any(body_):
+            print("MOVE ARM")
+            print("end_eff", end_eff)
             self._velocity_cmd_helper('move body', v_x=v_x_ , v_y=v_y_, v_rot=v_rot_)
+            self._arm_full_velocity_cmd_helper('EndEff Rotation', v_r = v_r_, v_theta = v_theta_, v_z = v_z_ , v_rx=v_rx_, v_ry=v_ry_, v_rz=v_rz_)
         
         end_eff_2 = [v_z_, v_rx_]
         
@@ -227,18 +230,20 @@ class TeleopInterface:
             #[Transl forward/back,Transl left/right, Rotation forward/back,Rotation left/right]
             
         if any(end_eff) or any(end_eff_2):
+            print("MOVE ARM")
+            print("end_eff", end_eff)
             if end_eff[0]:
-                v_r_ = end_eff[0] * VELOCITY_HAND_NORMALIZED
+                v_r_ += end_eff[0] * VELOCITY_HAND_NORMALIZED
                 # v_r_ = sign(end_eff[0]) * VELOCITY_HAND_NORMALIZED
    
             if end_eff[1]:
-                v_theta_ = end_eff[1] * VELOCITY_HAND_NORMALIZED
+                v_theta_ += end_eff[1] * VELOCITY_HAND_NORMALIZED
                 
             if end_eff[2]:
-                v_ry_ = end_eff[2] * VELOCITY_ANGULAR_HAND
+                v_ry_ += end_eff[2] * VELOCITY_ANGULAR_HAND
                 
             if end_eff[3]:
-                v_rz_ = -1 * end_eff[3] * VELOCITY_ANGULAR_HAND
+                v_rz_ += -1 * end_eff[3] * VELOCITY_ANGULAR_HAND
                 
             self._arm_full_velocity_cmd_helper('EndEff Rotation', v_r = v_r_, v_theta = v_theta_, v_z = v_z_ , v_rx=v_rx_, v_ry=v_ry_, v_rz=v_rz_)
 
