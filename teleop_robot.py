@@ -226,12 +226,6 @@ class TeleopInterface:
             # mapping end eff position
             #[Transl forward/back,Transl left/right, Rotation forward/back,Rotation left/right]
             
-        # debug to see if they got separted do i get same as wasd control:
-        # result: still didnt work as wasd 
-        # if any(end_eff_2):
-        #     self._arm_cylindrical_velocity_cmd_helper('EndEff Translation', v_r = 0.0, v_theta = 0.0, v_z = v_z_)    
-        #     # self._arm_angular_velocity_cmd_helper('EndEff Rotation',  v_rx=v_rx_, v_ry=v_ry_, v_rz=v_rz_)
-        
         if any(end_eff) or any(end_eff_2):
             if end_eff[0]:
                 v_r_ = end_eff[0] * VELOCITY_HAND_NORMALIZED
@@ -246,11 +240,8 @@ class TeleopInterface:
             if end_eff[3]:
                 v_rz_ = -1 * end_eff[3] * VELOCITY_ANGULAR_HAND
                 
-            self._arm_cylindrical_velocity_cmd_helper('EndEff Translation', v_r = v_r_, v_theta = v_theta_, v_z = v_z_)    
-            self._arm_angular_velocity_cmd_helper('EndEff Rotation',  v_rx=v_rx_, v_ry=v_ry_, v_rz=v_rz_)
-            # self._arm_cylindrical_velocity_cmd_helper('EndEff Translation', v_r = v_r_, v_theta = v_theta_, v_z = 0.0)    
-            # self._arm_angular_velocity_cmd_helper('EndEff Rotation',  v_rx=v_rx_, v_ry=v_ry_, v_rz=v_rz_)
-        # 
+            self._arm_full_velocity_cmd_helper('EndEff Rotation', v_r = v_r_, v_theta = v_theta_, v_z = v_z_ , v_rx=v_rx_, v_ry=v_ry_, v_rz=v_rz_)
+
         self.action = [v_x_, v_y_, v_rot_, v_r_, v_theta_, v_z_, v_rx_, v_ry_, v_rz_]
         # print("xbox_to_command: ", self.action)
         
@@ -400,6 +391,36 @@ class TeleopInterface:
                                                                            VELOCITY_CMD_DURATION_ARM))
 
         self._arm_velocity_cmd_helper(arm_velocity_command=arm_velocity_command, desc=desc)
+
+    
+    def _arm_full_velocity_cmd_helper(self, desc='', v_r = 0.0, v_theta = 0.0, v_z = 0.0 , v_rx=0.0, v_ry=0.0, v_rz=0.0):
+        """ Helper function to build an arm velocity command from angular velocities measured with respect
+            to the odom frame, expressed in the hand frame.
+
+        params:
+        + desc: string description of the desired command
+        + v_rx: angular velocity about X-axis in units rad/sec
+        + v_ry: angular velocity about Y-axis in units rad/sec
+        + v_rz: angular velocity about Z-axis in units rad/sec
+
+        """
+        # Specify a zero linear velocity of the hand. This can either be in a cylindrical or Cartesian coordinate system.
+        cylindrical_velocity = bosdyn.api.arm_command_pb2.ArmVelocityCommand.CylindricalVelocity()
+        cylindrical_velocity.linear_velocity.r = v_r
+        cylindrical_velocity.linear_velocity.theta = v_theta
+        cylindrical_velocity.linear_velocity.z = v_z
+        
+        # Build the angular velocity command of the hand
+        angular_velocity_of_hand_rt_odom_in_hand = bosdyn.api.geometry_pb2.Vec3(x=v_rx, y=v_ry, z=v_rz)
+
+        arm_velocity_command = bosdyn.api.arm_command_pb2.ArmVelocityCommand.Request(
+            cylindrical_velocity=cylindrical_velocity,
+            angular_velocity_of_hand_rt_odom_in_hand=angular_velocity_of_hand_rt_odom_in_hand,
+            end_time=self.robot.time_sync.robot_timestamp_from_local_secs(time.time() +
+                                                                           VELOCITY_CMD_DURATION_ARM))
+
+        self._arm_velocity_cmd_helper(arm_velocity_command=arm_velocity_command, desc=desc)
+
 
     def _arm_velocity_cmd_helper(self, arm_velocity_command, desc=''):
 
