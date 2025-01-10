@@ -182,7 +182,8 @@ class TeleopInterface:
         
         if body == "Left":
             if buttons_pressed == "LTRT":
-                v_rot_ = v_rz_ = VELOCITY_BASE_ANGULAR
+                ## the arm move in two directions 
+                v_rot_ = VELOCITY_BASE_ANGULAR
                 print("RTLeft")
             else:    
                 v_y_ = v_theta_ = VELOCITY_BASE_SPEED
@@ -190,7 +191,8 @@ class TeleopInterface:
             
         if body == "Right":
             if buttons_pressed == "LTRT":
-                v_rot_ =  v_rz_ = -VELOCITY_BASE_ANGULAR
+                ## the arm move in two directions 
+                v_rot_ = -VELOCITY_BASE_ANGULAR
                 print("RT Right")
             else:    
                 v_y_ = v_theta_ = -VELOCITY_BASE_SPEED
@@ -201,7 +203,8 @@ class TeleopInterface:
                 # move body up
                 self._change_height(1)
             else: 
-                v_x_ = v_r_ = VELOCITY_BASE_SPEED
+                v_x_ = VELOCITY_BASE_SPEED
+                # v_r_ = 0.75*VELOCITY_BASE_SPEED
             print("Up")
 
         
@@ -210,7 +213,8 @@ class TeleopInterface:
                 # move body up
                 self._change_height(-1)
             else:
-                v_x_ = v_r_ = -VELOCITY_BASE_SPEED
+                v_x_ = -VELOCITY_BASE_SPEED
+                # v_r_ = -0.75*VELOCITY_BASE_SPEED
             print("Down")
             
         body_ = [v_x_ , v_y_, v_rot_]
@@ -335,6 +339,7 @@ class TeleopInterface:
         self._start_robot_command(
             desc, RobotCommandBuilder.synchro_velocity_command(v_x=v_x, v_y=v_y, v_rot=v_rot, params=self.mobility_params),
             end_time_secs=time.time() + VELOCITY_CMD_DURATION)
+        
     
     def _change_height(self, direction):
         """Changes robot body height.
