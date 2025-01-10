@@ -186,7 +186,8 @@ class TeleopInterface:
                 v_rot_ = VELOCITY_BASE_ANGULAR
                 print("RTLeft")
             else:    
-                v_y_ = v_theta_ = VELOCITY_BASE_SPEED
+                v_y_ = VELOCITY_BASE_SPEED
+                # v_theta_ = VELOCITY_BASE_SPEED
                 print("Left")
             
         if body == "Right":
@@ -195,7 +196,8 @@ class TeleopInterface:
                 v_rot_ = -VELOCITY_BASE_ANGULAR
                 print("RT Right")
             else:    
-                v_y_ = v_theta_ = -VELOCITY_BASE_SPEED
+                v_y_ = -VELOCITY_BASE_SPEED
+                # v_theta_ = 
                 print("Right")
             
         if body == "Up": ## forward
@@ -223,7 +225,7 @@ class TeleopInterface:
             print("MOVE ARM")
             print("end_eff", end_eff)
             self._velocity_cmd_helper('move body', v_x=v_x_ , v_y=v_y_, v_rot=v_rot_)
-            self._arm_full_velocity_cmd_helper('EndEff Rotation', v_r = v_r_, v_theta = v_theta_, v_z = v_z_ , v_rx=v_rx_, v_ry=v_ry_, v_rz=v_rz_)
+            # self._arm_full_velocity_cmd_helper('EndEff Rotation', v_r = v_r_, v_theta = v_theta_, v_z = v_z_ , v_rx=v_rx_, v_ry=v_ry_, v_rz=v_rz_)
         
         end_eff_2 = [v_z_, v_rx_]
         
