@@ -22,7 +22,7 @@ from bosdyn.client.lease import Error as LeaseBaseError
 from bosdyn.client.image import ImageClient
 
 from xbox import JoySubscriber
-
+import csv
 def sign(x):
     return (x > 0) - (x < 0)
 
@@ -82,7 +82,14 @@ class TeleopInterface:
         ## added to track when we unstow becasue it easier to move with hand unstowed
         self.unstow = 0 # 1 when triggered
         self.start_ = False ## to start recording or use it as a flag
-         
+        self.csv_file = "step_times.csv"
+        
+        # Initialize CSV file with headers
+        with open(self.csv_file, mode="w", newline="") as file:
+            writer = csv.writer(file)
+            writer.writerow(["Step", "Timestamp"])
+        self.step_count = 1
+        
     def xbox_to_command(self):
         buttons_pressed = self.node.buttons_pressed
         body = self.node.body
@@ -254,7 +261,15 @@ class TeleopInterface:
             self._arm_full_velocity_cmd_helper('EndEff Rotation', v_r = v_r_, v_theta = v_theta_, v_z = v_z_ , v_rx=v_rx_, v_ry=v_ry_, v_rz=v_rz_)
 
         self.action = [v_x_, v_y_, v_rot_, v_r_, v_theta_, v_z_, v_rx_, v_ry_, v_rz_]
-        # print("xbox_to_command: ", self.action)
+        if self.start:
+            # Record the current time
+            timestamp = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())
+            
+            # Save to the CSV file
+            with open(self.csv_file, mode="a", newline="") as file:
+                writer = csv.writer(file)
+                writer.writerow([self.step_count, timestamp])
+            self.step_count += 1
         
     def start(self):
         """Begin communication with the robot."""
@@ -455,7 +470,7 @@ class TeleopInterface:
         self._start_robot_command('stow', RobotCommandBuilder.arm_stow_command())
 
     def _unstow(self):
-        self._start_robot_command('stow', RobotCommandBuilder.arm_ready_command())
+        self._start_robot_command('unstow', RobotCommandBuilder.arm_ready_command())
     
     def _toggle_lease(self):
         """toggle lease acquisition. Initial state is acquired"""
@@ -576,31 +591,7 @@ class TeleopInterface:
             rclpy.shutdown()
             self._safe_power_off()
             time.sleep(2.0)
-    
-    def teleop_spot_backup(self):
-        print("TELEOP")
-        try:
-            self.node.print_button_combination()
-            while rclpy.ok():
-                rclpy.spin_once(self.node, timeout_sec=0.1)  # Non-blocking spin
-                self.xbox_to_command()
-                ## TODO
-                # 1. get action
-                print("teleop_spot: ", self.action)
-                print("teleop_spot: ", self.gripper)
-                data = {"action": [], "joint_states": [], "gripper_states": []}
-            
-                if any(self.action):
-                    robot_state = self.robot_state_client.get_robot_state() 
-               
-                
-        except KeyboardInterrupt:
-            pass
-        finally:
-            self.node.destroy_node()
-            rclpy.shutdown()
-            self._safe_power_off()
-            time.sleep(2.0)
+
 
 def main():
     # Initialize rclpy
