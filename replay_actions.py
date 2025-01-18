@@ -18,8 +18,7 @@ from bosdyn.client.lease import Error as LeaseBaseError
 import numpy as np
 
 
-
-####  and BLT are empty
+#### BLT are empty
 COMMAND_INPUT_RATE = 0.1
 VELOCITY_CMD_DURATION = VELOCITY_CMD_DURATION_ARM = 0.2  # seconds 0.6 default
 # VELOCITY_CMD_DURATION_ARM = 0.5 ## as in wasd
@@ -88,7 +87,6 @@ class SpotInterface:
         self._unstow()
         time.sleep(10.0) 
         
-
     def shutdown(self):
         """Release control of robot as gracefully as possible."""
         logging.getLogger().info('Shutting down ArmWasdInterface.')
@@ -138,7 +136,6 @@ class SpotInterface:
             desc, RobotCommandBuilder.synchro_velocity_command(v_x=v_x, v_y=v_y, v_rot=v_rot, params=self.mobility_params),
             end_time_secs=time.time() + VELOCITY_CMD_DURATION)
         
-    
     def _change_height(self, direction):
         """Changes robot body height.
 
@@ -180,7 +177,6 @@ class SpotInterface:
 
         self._arm_velocity_cmd_helper(arm_velocity_command=arm_velocity_command, desc=desc)
 
-
     def _arm_velocity_cmd_helper(self, arm_velocity_command, desc=''):
 
         # Build synchronized robot command
@@ -190,8 +186,7 @@ class SpotInterface:
 
         self._start_robot_command(desc, robot_command,
                                   end_time_secs=time.time() + VELOCITY_CMD_DURATION_ARM)
-    
-    
+      
     def _toggle_gripper_open(self):
         self._start_robot_command('open_gripper', RobotCommandBuilder.claw_gripper_open_command())
 
@@ -221,7 +216,7 @@ class SpotInterface:
         '''
         read npz action file
         '''
-        demo_folder = "/home/olagh/Desktop/trial_demo_controlled2"
+        demo_folder = "/home/olagh/Desktop/only_arm_trial_demo_20250117_193427"
         action_list = np.load(demo_folder + "/testing_demo_action.npz")
         gripper_states_list = np.load(demo_folder + "/testing_demo_gripper_states.npz")
         actions = action_list["data"]
@@ -239,7 +234,8 @@ class SpotInterface:
             print( "action",v_x_, v_y_, v_rot_, v_r_, v_theta_, v_z_, v_rx_, v_ry_, v_rz_)
             self._velocity_cmd_helper('move body', v_x=v_x_ , v_y=v_y_, v_rot=v_rot_)
             self._arm_full_velocity_cmd_helper('EndEff Rotation', v_r = v_r_, v_theta = v_theta_, v_z = v_z_ , v_rx=v_rx_, v_ry=v_ry_, v_rz=v_rz_)
-            time.sleep(0.4615)
+            time.sleep(0.056) ## TODO: find the right value
+            
         self._stow()
         time.sleep(2.0)
         self._safe_power_off()

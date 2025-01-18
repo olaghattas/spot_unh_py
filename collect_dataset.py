@@ -118,6 +118,13 @@ class TeleopInterface:
             print("Return/Acquire Lease")
             self._toggle_lease()
             time.sleep(2.0)
+        
+        elif buttons_pressed == "BRT":
+            print("START FLAG")
+            
+            self.start_ = not self.start_
+            print(self.start_)
+            time.sleep(2.0)
             
         elif buttons_pressed == "BLT":
             print(" Nothing")
@@ -495,13 +502,92 @@ class TeleopInterface:
 
 
     def teleop_spot(self):
+        import numpy as np
         print("TELEOP")
+        
+        from datetime import datetime
         try:
+            # rate = self.node.create_rate(10)
             self.node.print_button_combination()
+            
+            # data = {"action": []}
+            cameras = ["frontleft_fisheye_image", "frontright_fisheye_image", "hand_color_image"]
+            
+            # Generate a timestamp 
+            timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+            # Create the folder with the timestamp
+            folder = f"/home/olagh/Desktop/trial_demo_{timestamp}"
+            
+            previous_state_dict = None
+            start = False
+            
+            data = {"action": [], "joint_states": [], "gripper_states": []}
+            for camera in cameras:
+                data[f"camera_{camera}"] = []
+                
             while rclpy.ok():
+                # print("RCLPY")
+                prev_start = start
+                # print("prev_start" ,prev_start)
                 rclpy.spin_once(self.node, timeout_sec=0.1)  # Non-blocking spin
+                
+                start = self.start_
+    
                 self.xbox_to_command()
-      
+                
+                image_client = self.robot.ensure_client(ImageClient.default_service_name)
+                sources = image_client.list_image_sources()
+                
+                # print("start", start)
+                if start:
+                    # print("TELEOP DEMO STARTED")
+                    action = self.action
+                    state = self.robot_state_client.get_robot_state() 
+                    data["action"].append(action)
+                    
+                    joint_states = state.kinematic_state.joint_states
+                    positions = np.array([joint.position.value for joint in joint_states])
+
+                    state_dict = {
+                        "joint_states": positions,
+                        "gripper_states": np.array(self.gripper),
+                    }
+                    
+                    if previous_state_dict is not None:
+                        for proprio_key in state_dict.keys():
+                            proprio_state = state_dict[proprio_key]
+                            if np.sum(np.abs(proprio_state)) <= 1e-6:
+                                proprio_state = previous_state_dict[proprio_key]
+                            state_dict[proprio_key] = np.copy(proprio_state)
+                            
+                    for proprio_key in state_dict.keys():
+                        data[proprio_key].append(state_dict[proprio_key])
+
+                    previous_state_dict = state_dict
+                    
+                    
+                    for camera in cameras:
+                        image = image_client.get_image_from_sources([camera])[0].shot.image
+                        data[f"camera_{camera}"].append(image)
+                    ## ERROR - Teleop has thrown an error: 'camera_frontleft_fisheye_image'
+
+
+                # start turned from true to false signaling to stop recording
+                if not start and prev_start:
+                    # print("ksdahfkdgfkjhdsfghkjdkfvhdf")
+                    os.makedirs(folder, exist_ok=True)
+                
+                    np.savez(f"{folder}/testing_demo_action", data=np.array(data["action"]))
+                    # np.savez(f"{folder}/testing_demo_ee_states", data=np.array(data["ee_states"]))
+                    np.savez(f"{folder}/testing_demo_joint_states", data=np.array(data["joint_states"]))
+                    np.savez(f"{folder}/testing_demo_gripper_states",data=np.array(data["gripper_states"]))
+                    for camera in cameras:
+                        np.savez(
+                            f"{folder}/testing_demo_camera_{camera}",
+                            data=np.array(data[f"camera_{camera}"]),
+                        )
+                        
+                # rate.sleep()
         except KeyboardInterrupt:
             pass
         finally:
@@ -509,7 +595,7 @@ class TeleopInterface:
             rclpy.shutdown()
             self._safe_power_off()
             time.sleep(2.0)
-            
+
 
 def main():
     # Initialize rclpy

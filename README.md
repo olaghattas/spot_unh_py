@@ -46,6 +46,11 @@
         |   - Left           | Rotate left              |
         |   - Right          | Rotate right             |
         |                    |                          |
+# Scripts:
+teleop_robot.py: enable teleoperating spot with xbox. It listens to /joy topic.
+collect_data: RT+A starts data collection saveds in npz files. 
+read_npz.ipynb: notebook to visualize the save data
+create_hdf5_dataset.py: transforms the npz files to one hdf5 file for policy training
 
 # NOTE:
 
@@ -54,8 +59,5 @@
 2- When docked the power goes off, so you need to power it back on with LB+A if you are planning to undock without restarting the script
 
 # TODO:
-
-1) get robot state
-2) extract camera images
-4) merge keys sit stand tak RT/B 
-7) setup dataset collection
+1) merge keys sit stand tak RT/B 
+2) fix replay 
