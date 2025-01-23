@@ -47,10 +47,11 @@
         |   - Right          | Rotate right             |
         |                    |                          |
 # Scripts:
-teleop_robot.py: enable teleoperating spot with xbox. It listens to /joy topic.
-collect_data: RT+A starts data collection saveds in npz files. 
-read_npz.ipynb: notebook to visualize the save data
-create_hdf5_dataset.py: transforms the npz files to one hdf5 file for policy training
+
+* **teleop_robot.py:** enable teleoperating spot with Xbox. It listens to /joy topic.
+* **collect_data.py:** RT+A starts data collection and saves it in npz files. 
+* **read_npz.ipynb:** notebook to visualize the saved data
+* **create_hdf5_dataset.py:** transforms the .npz files to one hdf5 file for policy training
 
 # NOTE:
 
