@@ -501,7 +501,13 @@ class TeleopInterface:
             while rclpy.ok():
                 rclpy.spin_once(self.node, timeout_sec=0.1)  # Non-blocking spin
                 self.xbox_to_command()
-      
+                
+                state = self.robot_state_client.get_robot_state() 
+                joint_states = state.kinematic_state.joint_states
+                # print(joint_states)
+                # for joint in joint_states:
+                #     print(joint.name)
+                #     print(joint.position.value)                
         except KeyboardInterrupt:
             pass
         finally:
