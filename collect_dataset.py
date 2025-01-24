@@ -537,10 +537,10 @@ class TeleopInterface:
                 
                 image_client = self.robot.ensure_client(ImageClient.default_service_name)
                 sources = image_client.list_image_sources()
-                
+                # print("self.gripper", self.gripper)
                 # print("start", start)
                 if start:
-                    # print("TELEOP DEMO STARTED")
+                    
                     action = self.action
                     state = self.robot_state_client.get_robot_state() 
                     data["action"].append(action)
@@ -548,9 +548,10 @@ class TeleopInterface:
                     joint_states = state.kinematic_state.joint_states
                     positions = np.array([joint.position.value for joint in joint_states])
 
+                    data["gripper_states"].append(self.gripper)
                     state_dict = {
                         "joint_states": positions,
-                        "gripper_states": np.array(self.gripper),
+                        # "gripper_states": np.array(self.gripper),
                     }
                     
                     if previous_state_dict is not None:
