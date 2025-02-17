@@ -59,6 +59,12 @@
 
 2- When docked the power goes off, so you need to power it back on with LB+A if you are planning to undock without restarting the script
 
-# TODO:
+Helpful commands:
+
+ ros2 launch teleop_twist_joy teleop-launch.py joy_config:='xbox'
+you will need to install the pakcag first with '''sudo apt-get install ros-humble-teleop-twist-joy'''
+
+
+TODO:
 1) merge keys sit stand tak RT/B 
 2) fix replay 
