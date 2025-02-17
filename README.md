@@ -62,8 +62,9 @@
 Helpful commands:
 
  ros2 launch teleop_twist_joy teleop-launch.py joy_config:='xbox'
-you will need to install the pakcag first with '''sudo apt-get install ros-humble-teleop-twist-joy'''
-
+you will need to install the package first with '''sudo apt-get install ros-humble-teleop-twist-joy'''
+also install bosdyn packages follow stes here and make sure hello-robot.py works first:
+https://github.com/boston-dynamics/spot-sdk/blob/master/docs/python/quickstart.md
 
 TODO:
 1) merge keys sit stand tak RT/B 
